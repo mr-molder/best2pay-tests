@@ -14,12 +14,8 @@ SCENARIOS = {
         'test_path': 'tests/test_purchase.py::test_gateway_payment_success'
     },
     'sbp_credit_success': {
-        'name': 'СБП-выплата (успех)',
-        'test_path': 'tests/test_sbp.py::test_sbp_credit_scenarios[79110123456-10000000003-REJECTED]'
-    },
-    'sbp_credit_error': {
-        'name': 'СБП-выплата (ошибка 281)',
-        'test_path': 'tests/test_sbp.py::test_sbp_credit_scenarios[79110123456-10000000008-None]'
+        'name': 'СБП-выплата (CreditPrecheck и Credit)',
+        'test_path': 'tests/test_sbp.py::test_sbp_credit_scenarios[79110123456-10000000002-APPROVED]'
     },
     'identification_success': {
         'name': 'Идентификация (успех)',
