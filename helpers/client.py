@@ -44,10 +44,10 @@ class Best2PayClient:
     # ---- Методы API ----
 
     def register(self, amount: int, currency: int, description: str,
-                 reference: str = None, url: str = None, failurl: str = None,
-                 email: str = None, phone: str = None, ps: int = None,
-                 recurring_period: int = None, fiscal_data: str = None,
-                 notify_url: str = None, **kwargs) -> dict:
+             reference: str = None, url: str = None, failurl: str = None,
+             email: str = None, phone: str = None, ps: int = None,
+             recurring_period: int = None, fiscal_data: str = None,
+             notify_url: str = None, fee: int = None, **kwargs) -> dict:
         params = {
             'amount': amount,
             'currency': currency,
@@ -71,13 +71,17 @@ class Best2PayClient:
             params['fiscalData'] = fiscal_data
         if notify_url:
             params['notify_url'] = notify_url
+        if fee is not None:
+            params['fee'] = fee
         params.update(kwargs)
 
+        # Подпись: sector, amount, currency, password (fee не участвует)
         signature = generate_signature(
             [self.sector, params['amount'], params['currency'], self.password],
             algorithm=self.algorithm
         )
         params['signature'] = signature
+        print(signature)
 
         resp = self._post('/webapi/Register', params)
         return self._parse_response(resp)
@@ -421,3 +425,40 @@ class Best2PayClient:
 
         resp = self._post('/webapi/Order', params)
         return self._parse_response(resp)
+    
+    def payment_fee(self, amount: int, currency: int, ps: int = None, pan: str = None, token: str = None, mode: int = 2) -> dict:
+        params = {
+            'amount': amount,
+            'currency': currency,
+            'mode': mode
+        }
+        if ps is not None:
+            params['ps'] = ps
+        if pan:
+            params['pan'] = pan
+        if token:
+            params['token'] = token
+        if not (pan or token or ps):
+            raise ValueError("Необходимо указать pan, token или ps")
+
+        # Формируем подпись с фиксированным порядком: sector, amount, ps, pan, token, password
+        # Недостающие заменяем пустой строкой
+        sig_parts = [
+            self.sector,
+            amount,
+            ps if ps is not None else '',
+            pan if pan else '',
+            token if token else '',
+            self.password
+        ]
+        signature = generate_signature(sig_parts, algorithm=self.algorithm)
+        params['signature'] = signature
+        print(signature)
+
+        resp = self._post('/webapi/PaymentFee', params)
+
+        if mode == 0:
+            text = resp.text.strip()
+            return {'fee_value': int(text) if text.lstrip('-').isdigit() else -1}
+        else:
+            return self._parse_response(resp)

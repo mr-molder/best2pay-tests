@@ -52,6 +52,14 @@ SCENARIOS = {
     'get_sbp_token': {
         'name': 'Получение SBP-токена',
         'test_path': 'tests/test_get_sbp_token.py::test_get_sbp_token'
+    },
+    'purchase_with_fee': {
+        'name': 'Оплата с комиссией (PURCHASE)',
+        'test_path': 'tests/test_purchase_with_fee.py::test_purchase_with_fee'
+    },
+    'sbp_purchase_with_fee': {
+        'name': 'Оплата СБП с комиссией',
+        'test_path': 'tests/test_sbp_purchase_with_fee.py::test_sbp_purchase_with_fee'
     }
     # Добавьте другие сценарии по мере необходимости
 }
