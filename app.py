@@ -11,7 +11,7 @@ app = Flask(__name__)
 SCENARIOS = {
     'purchase_success': {
         'name': 'Успешная оплата (PURCHASE)',
-        'test_path': 'tests/test_purchase.py::test_gateway_payment_success'
+        'test_path': 'tests/test_purchase.py::test_purchase_success'
     },
     'sbp_credit_success': {
         'name': 'СБП-выплата (CreditPrecheck и Credit)',

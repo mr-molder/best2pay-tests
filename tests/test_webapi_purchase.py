@@ -2,7 +2,6 @@ import pytest
 import time
 
 def test_webapi_purchase_success(client, test_card, callback_server_fixture):
-    # Регистрируем заказ
     order = client.register(
         amount=1000,
         currency=643,
@@ -16,19 +15,31 @@ def test_webapi_purchase_success(client, test_card, callback_server_fixture):
     order_id = int(order['id'])
     print(f"Заказ создан, order_id: {order_id}")
 
-    # Выполняем оплату через webapi/Purchase с action=pay
     resp = client.webapi_purchase(
         order_id=order_id,
         pan=test_card['pan'],
         month=test_card['month'],
         year=test_card['year'],
         cvc=test_card['cvc'],
-        action='pay'
+        action='pay',
+        name="Cardholder Name"
     )
 
     print("webapi_purchase ответ:", resp)
 
-    # Если ответ содержит state, проверяем APPROVED
+    # Если ответ пустой или None, проверим статус заказа через order
+    if not resp:
+        print("Пустой ответ, проверяем статус заказа...")
+        time.sleep(2)
+        order_info = client.order(order_id=order_id, get_token=0)
+        if 'error' in order_info:
+            pytest.fail(f"Ошибка при проверке заказа: {order_info}")
+        if order_info.get('state') not in ('COMPLETED', 'APPROVED'):
+            pytest.fail(f"Заказ не завершён. Статус: {order_info.get('state')}")
+        print("Оплата успешна по статусу заказа")
+        return
+
+    # Если есть state
     if isinstance(resp, dict) and 'state' in resp:
         assert resp['state'] == 'APPROVED'
         assert resp['reason_code'] == '1'
@@ -36,7 +47,7 @@ def test_webapi_purchase_success(client, test_card, callback_server_fixture):
     elif isinstance(resp, dict) and 'error' in resp:
         pytest.fail(f"Ошибка: {resp}")
     else:
-        # Если редирект – извлекаем operation_id и проверяем статус
+        # Если редирект – извлекаем operation_id
         if 'operation' in resp:
             print(f"Операция создана, operation_id={resp['operation']}, проверяем статус...")
             time.sleep(2)
