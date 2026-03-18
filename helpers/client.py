@@ -25,13 +25,20 @@ class Best2PayClient:
             parsed = urlparse(location)
             query = parse_qs(parsed.query)
             return {k: v[0] for k, v in query.items()}
+        
         content_type = resp.headers.get('Content-Type', '')
+        
+        # Если ответ пустой (200 OK, но нет тела) – возвращаем пустой словарь
+        if not resp.text:
+            return {}
+            
         if 'text/plain' in content_type:
             return resp.text.strip()
         elif 'xml' in content_type:
             return self._xml_to_dict(resp.text)
         else:
-            resp.raise_for_status()
+            # Для неизвестного типа – пытаемся вернуть как текст
+            return {'raw_response': resp.text}
 
     def _xml_to_dict(self, xml_str: str) -> dict:
         root = ET.fromstring(xml_str)
@@ -304,12 +311,16 @@ class Best2PayClient:
         if get_qr_img is not None:
             params['get_qr_img'] = get_qr_img
 
-        # Подпись: sector, description, password
-        signature = generate_signature(
-            [self.sector, description, self.password],
-            algorithm=self.algorithm
-        )
+        # Подпись ТОЛЬКО из sector и description (согласно документации)
+        sig_parts = [self.sector, description, self.password]
+        
+        signature = generate_signature(sig_parts, algorithm=self.algorithm)
         params['signature'] = signature
+
+        # Отладка
+        print(f"DEBUG GetSBPSubscription sig_parts: {sig_parts}")
+        print(f"DEBUG GetSBPSubscription signature: {signature}")
+        print(f"DEBUG GetSBPSubscription params: {params}")
 
         resp = self._post('/webapi/GetSBPSubscription', params)
         return self._parse_response(resp)

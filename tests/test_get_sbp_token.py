@@ -27,10 +27,11 @@ def test_get_sbp_token(client, callback_server_fixture):
         get_qr_img=0
     )
 
+    print("GetSBPSubscription ответ:", resp)
+
+    # Проверяем наличие ошибки
     if isinstance(resp, dict) and 'error' in resp:
         pytest.fail(f"GetSBPSubscription вернул ошибку: {resp}")
-
-    print("GetSBPSubscription ответ:", resp)
 
     qrc_id = resp.get('qrcId')
     token = resp.get('token')
@@ -48,10 +49,10 @@ def test_get_sbp_token(client, callback_server_fixture):
         qrc_id=qrc_id
     )
 
+    print("Активация выполнена, ответ:", activate_resp)
+
     if isinstance(activate_resp, dict) and 'error' in activate_resp:
         pytest.fail(f"SBPTestCase вернул ошибку при активации: {activate_resp}")
-
-    print("Активация выполнена, ответ:", activate_resp)
 
     # Шаг 3: сохраняем токен
     save_sbp_token(token)
