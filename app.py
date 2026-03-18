@@ -60,6 +60,10 @@ SCENARIOS = {
     'sbp_purchase_with_fee': {
         'name': 'Оплата СБП с комиссией',
         'test_path': 'tests/test_sbp_purchase_with_fee.py::test_sbp_purchase_with_fee'
+    },
+    'webapi_purchase': {
+        'name': 'Оплата через webapi/Purchase',
+        'test_path': 'tests/test_webapi_purchase.py::test_webapi_purchase_success'
     }
     # Добавьте другие сценарии по мере необходимости
 }

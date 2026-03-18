@@ -462,3 +462,53 @@ class Best2PayClient:
             return {'fee_value': int(text) if text.lstrip('-').isdigit() else -1}
         else:
             return self._parse_response(resp)
+        
+    def webapi_purchase(self, order_id: int, pan: str = None, month: int = None, year: int = None,
+                    cvc: str = None, action: str = None, payer_id: str = None,
+                    pan_token_sha256: str = None, cof_ind: str = None, **kwargs) -> dict:
+        """
+        Оплата через webapi/Purchase (с редиректом или action=pay).
+        :param order_id: ID заказа
+        :param pan: номер карты
+        :param month: месяц срока действия
+        :param year: год срока действия
+        :param cvc: код безопасности
+        :param action: 'pay' для синхронного проведения
+        :param payer_id: идентификатор плательщика на стороне ТСП
+        :param pan_token_sha256: хеш pan_token (если используется)
+        :param cof_ind: признак COF для карт МИР
+        :return: словарь с ответом (XML или параметры редиректа)
+        """
+        params = {'id': order_id}
+        if pan:
+            params['pan'] = pan
+        if month:
+            params['month'] = month
+        if year:
+            params['year'] = year
+        if cvc:
+            params['cvc'] = cvc
+        if action:
+            params['action'] = action
+        if payer_id:
+            params['payer_id'] = payer_id
+        if pan_token_sha256:
+            params['pan_token_sha256'] = pan_token_sha256
+        if cof_ind:
+            params['cof_ind'] = cof_ind
+        params.update(kwargs)
+
+        # Подпись: sector, id, payer_id, pan_token_sha256, cof_ind, password
+        sig_parts = [
+            self.sector,
+            order_id,
+            payer_id if payer_id else '',
+            pan_token_sha256 if pan_token_sha256 else '',
+            cof_ind if cof_ind else '',
+            self.password
+        ]
+        signature = generate_signature(sig_parts, algorithm=self.algorithm)
+        params['signature'] = signature
+
+        resp = self._post('/webapi/Purchase', params)
+        return self._parse_response(resp)
