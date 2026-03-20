@@ -57,6 +57,10 @@ SCENARIOS = {
         'name': 'Оплата СБП с комиссией',
         'test_path': 'tests/test_sbp_purchase_with_fee.py::test_sbp_purchase_with_fee'
     },
+    'p2p_credit': {
+        'name': 'Выплата на карту (P2PCredit)',
+        'test_path': 'tests/test_p2p_credit.py::test_p2p_credit'
+    }
     # Добавьте другие сценарии по мере необходимости
 }
 

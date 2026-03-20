@@ -523,3 +523,76 @@ class Best2PayClient:
 
         resp = self._post('/webapi/Purchase', params)
         return self._parse_response(resp)
+    
+    def p2p_credit(self, order_id: int = None, amount: int = None, currency: int = None,
+               reference: str = None, pan: str = None, token: str = None,
+               address: str = None, city: str = None, post_code: str = None,
+               countrynum: str = None, name: str = None, receiver_name: str = None,
+               get_token: int = None, email: str = None) -> dict:
+        """
+        Зачисление средств на карту со счета ТСП (gateweb/P2PCredit).
+        Должен быть указан либо order_id, либо amount+currency+reference.
+        Также должен быть указан либо pan, либо token.
+        """
+        params = {}
+        if order_id:
+            params['id'] = order_id
+        if amount is not None:
+            params['amount'] = amount
+        if currency is not None:
+            params['currency'] = currency
+        if reference:
+            params['reference'] = reference
+        if pan:
+            params['pan'] = pan
+        if token:
+            params['token'] = token
+        if address:
+            params['address'] = address
+        if city:
+            params['city'] = city
+        if post_code:
+            params['post_code'] = post_code
+        if countrynum:
+            params['countrynum'] = countrynum
+        if name:
+            params['name'] = name
+        if receiver_name:
+            params['receiver_name'] = receiver_name
+        if get_token is not None:
+            params['get_token'] = get_token
+        if email:
+            params['email'] = email
+
+        # Проверка наличия обязательных групп
+        if not (order_id or (amount is not None and currency is not None and reference)):
+            raise ValueError("Необходимо указать либо order_id, либо amount+currency+reference")
+        if not (pan or token):
+            raise ValueError("Необходимо указать либо pan, либо token")
+
+        # Подпись: sector, id, amount, currency, pan, token, password
+        sig_parts = [
+            self.sector,
+            order_id if order_id else '',
+            amount if amount is not None else '',
+            currency if currency is not None else '',
+            pan if pan else '',
+            token if token else '',
+            self.password
+        ]
+        signature = generate_signature(sig_parts, algorithm=self.algorithm)
+        params['signature'] = signature
+
+        resp = self._post('/gateweb/P2PCredit', params)
+        return self._parse_response(resp)
+
+    def p2p_credit_balance(self, nonce: int) -> dict:
+        """
+        Получение баланса счета сектора для выплат (webapi/P2PCreditBalance).
+        :param nonce: уникальный номер запроса (должен увеличиваться)
+        """
+        params = {'nonce': nonce}
+        signature = generate_signature([self.sector, nonce, self.password], algorithm=self.algorithm)
+        params['signature'] = signature
+        resp = self._post('/webapi/P2PCreditBalance', params)
+        return self._parse_response(resp)
