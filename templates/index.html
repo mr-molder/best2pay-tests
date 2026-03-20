@@ -1,109 +1,159 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    
-    <!-- <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
-        label { display: inline-block; width: 180px; font-weight: bold; margin-bottom: 10px; }
-        input, select { width: 400px; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #45a049; }
-        #output { margin-top: 20px; background: #f4f4f4; padding: 15px; border: 1px solid #ddd; border-radius: 4px; max-height: 500px; overflow: auto; white-space: pre-wrap; font-family: monospace; }
-        .success { color: green; font-weight: bold; }
-        .failure { color: red; font-weight: bold; }
-        .error-message { color: darkorange; }
-    </style> -->
-    <title>Best2Pay Тестирование</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best2Pay Инструменты</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    
 </head>
 <body>
-    <div class="container">
-        <h1>Best2Pay Тестирование</h1>
-        <form id="testForm">
-            <div>
-                <label>Сектор (ID):</label>
-                <input type="text" id="sector" required placeholder="Например: 1">
-            </div>
-            <div>
-                <label>Пароль:</label>
-                <input type="password" id="password" required placeholder="Пароль для подписи">
-            </div>
-            <div>
-                <label>Алгоритм подписи:</label>
-                <select id="algorithm">
-                    <option value="sha256" selected>SHA256</option>
-                    <option value="md5">MD5</option>
-                </select>
-            </div>
-            <div>
-                <label>Сценарий:</label>
-                <select id="scenario" required>
-                    {% for key, sc in scenarios.items() %}
-                    <option value="{{ key }}">{{ sc.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="button" onclick="runTest()">Начать тестирование</button>
-        </form>
+    <div class="main-container">
+        <h1>Best2Pay Инструменты</h1>
 
-        <h2>Результат:</h2>
-        <pre id="output">(ожидание запуска...)</pre>
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab(0)">Шаблон выдачи</button>
+            <button class="tab-button" onclick="showTab(1)">Тестирование</button>
+            <button class="tab-button" onclick="showTab(2)">Донастройка секторов</button>
+        </div>
+
+        <!-- ВКЛАДКА 1: ШАБЛОН ВЫДАЧИ -->
+        <div id="tab-0" class="tab-content active">
+            <h2>Шаблон выдачи</h2>
+            <form id="generatorForm">
+                <label for="accessType">Тип доступа:</label>
+                <select id="accessType" required>
+                    <option value="combat">Боевой</option>
+                    <option value="test">Тестовый</option>
+                </select>
+
+                <label for="login">Login:</label>
+                <input type="text" id="login" placeholder="Например: finmi.ru или plata" required>
+
+                <label for="hashType">Тип хэша:</label>
+                <select id="hashType" required>
+                    <option value="sha256">sha256</option>
+                    <option value="md5">md5</option>
+                </select>
+
+                <label for="sectors">Список секторов (каждый с новой строки):</label>
+                <textarea id="sectors" rows="10" placeholder="Sector ID: 24094 ООО МКК &quot;Финкомпас&quot; (finmi.ru) (СМЭВ) (БП)..." required></textarea>
+
+                <button type="button" id="generateButton">Сгенерировать текст</button>
+                <button type="button" id="copyButton">Копировать текст</button>
+            </form>
+            <textarea id="generator-output" class="output" readonly></textarea>
+        </div>
+
+        <!-- ВКЛАДКА 2: ТЕСТИРОВАНИЕ -->
+        <div id="tab-1" class="tab-content">
+            <h2>Тестирование Best2Pay</h2>
+            <form id="testForm">
+                <div><label>Сектор (ID):</label><input type="text" id="sector" required placeholder="Например: 1"></div>
+                <div><label>Пароль:</label><input type="password" id="password" required placeholder="Пароль для подписи"></div>
+                <div><label>Алгоритм подписи:</label>
+                    <select id="algorithm">
+                        <option value="sha256" selected>SHA256</option>
+                        <option value="md5">MD5</option>
+                    </select>
+                </div>
+                <div><label>Сценарий:</label>
+                    <select id="scenario" required>
+                        {% for key, sc in scenarios.items() %}
+                        <option value="{{ key }}">{{ sc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" onclick="runTest()">Начать тестирование</button>
+            </form>
+            <h3>Результат:</h3>
+            <pre id="tester-output" class="output">(ожидание запуска...)</pre>
+        </div>
+
+        <!-- ВКЛАДКА 3: ДОНАСТРОЙКА СЕКТОРОВ -->
+        <div id="tab-2" class="tab-content">
+            <h2>Генератор запроса на донастройку секторов</h2>
+            <form id="dona-mainForm">
+                <label for="dona-requestTitle">Заголовок запроса:</label>
+                <input type="text" id="dona-requestTitle" value="Просьба донастроить сектора" required>
+
+                <label for="dona-login">Логин:</label>
+                <input type="text" id="dona-login" placeholder="Например: miamoney.ru" required>
+
+                <button type="button" id="dona-addSectorButton">Добавить сектор</button>
+            </form>
+
+            <div id="dona-sectorsList"></div>
+
+            <button type="button" id="dona-generateButton">Сгенерировать текст</button>
+            <button type="button" id="dona-copyButton" style="display: none;">Копировать текст</button>
+
+            <div id="dona-output"></div>
+        </div>
     </div>
 
-    <script>
-        async function runTest() {
-            const sector = document.getElementById('sector').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const algorithm = document.getElementById('algorithm').value;
-            const scenario = document.getElementById('scenario').value;
+    <!-- МОДАЛЬНОЕ ОКНО (общее для вкладки 3) -->
+    <div id="modal">
+        <div id="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Добавить сектор</h2>
+            <form id="sectorForm">
+                <label for="sectorData">Данные сектора:</label>
+                <input type="text" id="sectorData" placeholder="9050 ООО МКК Кальмия (miamoney.ru) (СБП) (ФЛ) или ..." required>
+                <div class="form-hint">Можно с префиксом "Sector ID:" или без.</div>
 
-            if (!sector || !password) {
-                document.getElementById('output').innerHTML = '<span class="error-message">❌ Пожалуйста, заполните все поля</span>';
-                return;
-            }
+                <button type="button" id="parseSectorDataBtn">Разобрать строку</button>
 
-            const data = {
-                sector: sector,
-                password: password,
-                algorithm: algorithm,
-                scenario: scenario
-            };
+                <label for="sectorType">Тип сектора:</label>
+                <select id="sectorType" required>
+                    <option value="SMEV">СМЭВ</option>
+                    <option value="P2PCredit">P2PCredit</option>
+                    <option value="SBPCredit">SBPCredit</option>
+                    <option value="Out">Out</option>
+                    <option value="In">In</option>
+                    <option value="In_FL">In (ФЛ)</option>
+                    <option value="Token">Token</option>
+                    <option value="SBP Token">SBP Token</option>
+                    <option value="A2C">A2C</option>
+                    <option value="C2A_FL">C2A (ФЛ)</option>
+                    <option value="SBP_FL">СБП (ФЛ)</option>
+                </select>
 
-            document.getElementById('output').innerHTML = '⏳ Запуск теста...';
+                <label for="hasCommission">Есть комиссия?</label>
+                <input type="checkbox" id="hasCommission">
 
-            try {
-                const response = await fetch('/run_test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                <div id="commissionDetails" class="hidden">
+                    <div class="commission-type-group">
+                        <label><input type="radio" name="commissionType" value="fix" checked> Фиксированная (процент + фикс)</label>
+                        <label><input type="radio" name="commissionType" value="min"> Минимальная (процент + минимум)</label>
+                    </div>
 
-                // Проверяем, что ответ вообще есть и он в JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    // Если сервер вернул не JSON (например, HTML с ошибкой 500)
-                    const text = await response.text();
-                    document.getElementById('output').innerHTML = '<span class="failure">❌ Ошибка сервера: получен не JSON</span>\n\n' + text;
-                    return;
-                }
+                    <label for="commissionPercent">Процент комиссии:</label>
+                    <input type="number" id="commissionPercent" min="0" step="any" placeholder="0">
 
-                const result = await response.json();
+                    <div id="fixField">
+                        <label for="commissionFix">Фикс (руб):</label>
+                        <input type="number" id="commissionFix" min="0" step="any" placeholder="0">
+                    </div>
 
-                if (result.error) {
-                    document.getElementById('output').innerHTML = '<span class="failure">❌ Ошибка:</span>\n\n' + result.error;
-                } else if (result.success) {
-                    document.getElementById('output').innerHTML = '<span class="success">✅ ТЕСТ ПРОЙДЕН</span>\n\n' + result.output;
-                } else {
-                    document.getElementById('output').innerHTML = '<span class="failure">❌ ТЕСТ НЕ ПРОЙДЕН</span>\n\n' + result.output;
-                }
-            } catch (error) {
-                document.getElementById('output').innerHTML = '<span class="failure">❌ Ошибка соединения или парсинга:</span>\n\n' + error;
-            }
-        }
-    </script>
+                    <div id="minField" class="hidden">
+                        <label for="commissionMin">Минимум (руб):</label>
+                        <input type="number" id="commissionMin" min="0" step="any" placeholder="0">
+                    </div>
+                    <div class="form-hint" id="commissionHint"></div>
+                </div>
+
+                <h3>Ручки:</h3>
+                <div id="handles"></div>
+
+                <h3>Настройки:</h3>
+                <div id="settings"></div>
+
+                <button type="button" id="modalActionBtn">Добавить в список</button>
+                <div id="modal-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

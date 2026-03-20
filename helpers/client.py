@@ -82,13 +82,10 @@ class Best2PayClient:
             params['fee'] = fee
         params.update(kwargs)
 
-        # Подпись: sector, amount, currency, password (fee не участвует)
-        signature = generate_signature(
-            [self.sector, params['amount'], params['currency'], self.password],
-            algorithm=self.algorithm
-        )
+        # Формируем подпись ТОЛЬКО из sector, amount, currency, password (без fee!)
+        sig_parts = [self.sector, params['amount'], params['currency'], self.password]
+        signature = generate_signature(sig_parts, algorithm=self.algorithm)
         params['signature'] = signature
-        print(signature)
 
         resp = self._post('/webapi/Register', params)
         return self._parse_response(resp)
@@ -296,13 +293,6 @@ class Best2PayClient:
         return self._parse_response(resp)
 
     def get_sbp_subscription(self, description: str, url: str = None, life_period: int = None, get_qr_img: int = None) -> dict:
-        """
-        Регистрация СБП-привязки без оплаты (webapi/GetSBPSubscription).
-        :param description: Назначение привязки (отображается в банке)
-        :param url: Ссылка для возврата в приложение ТСП
-        :param life_period: Срок жизни ссылки в минутах
-        :param get_qr_img: 1 - получить QR-код
-        """
         params = {'description': description}
         if url:
             params['url'] = url
@@ -311,16 +301,14 @@ class Best2PayClient:
         if get_qr_img is not None:
             params['get_qr_img'] = get_qr_img
 
-        # Подпись ТОЛЬКО из sector и description (согласно документации)
+        # Подпись ТОЛЬКО из sector, description и password (согласно документации)
         sig_parts = [self.sector, description, self.password]
-        
         signature = generate_signature(sig_parts, algorithm=self.algorithm)
         params['signature'] = signature
 
         # Отладка
         print(f"DEBUG GetSBPSubscription sig_parts: {sig_parts}")
         print(f"DEBUG GetSBPSubscription signature: {signature}")
-        print(f"DEBUG GetSBPSubscription params: {params}")
 
         resp = self._post('/webapi/GetSBPSubscription', params)
         return self._parse_response(resp)
