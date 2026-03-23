@@ -142,20 +142,72 @@ document.addEventListener('DOMContentLoaded', function() {
         { id: 'privyazka_rekurrenty', label: 'настроить привязку и рекурренты для карт + СБП' }
     ];
 
+    // Расширенное маппирование для поддержки латиницы и кириллицы
     const typeMapping = {
-        'СБП': 'SBP_FL', 'С2А': 'C2A_FL', 'C2A': 'C2A_FL',
-        'In': 'In', 'In (ФЛ)': 'In_FL', 'In(ФЛ)': 'In_FL',
-        'Out': 'Out', 'Token': 'Token', 'SBP Token': 'SBP Token',
-        'SBPТoken': 'SBP Token', 'A2C': 'A2C', 'СМЭВ': 'SMEV',
-        'P2PCredit': 'P2PCredit', 'SBPCredit': 'SBPCredit'
-    };
-
-    const russianType = {
-        'SBP_FL': 'СБП', 'C2A_FL': 'С2А', 'In': 'In', 'In_FL': 'In (ФЛ)',
-        'Out': 'Out', 'Token': 'Token', 'SBP Token': 'SBP Token',
-        'A2C': 'A2C', 'SMEV': 'СМЭВ', 'P2PCredit': 'P2PCredit',
+        // СБП - поддерживаем оба варианта
+        'СБП': 'SBP_FL',
+        'СБП (ФЛ)': 'SBP_FL',
+        'SBP': 'SBP_FL',
+        'SBP_FL': 'SBP_FL',
+        'sbp': 'SBP_FL',
+        'FL': 'SBP_FL',
+        
+        // C2A - поддерживаем оба варианта
+        'С2А': 'C2A_FL',
+        'С2А (ФЛ)': 'C2A_FL',
+        'C2A': 'C2A_FL',
+        'C2A_FL': 'C2A_FL',
+        'c2a': 'C2A_FL',
+        
+        // Другие типы
+        'In': 'In',
+        'In (ФЛ)': 'In_FL',
+        'In(ФЛ)': 'In_FL',
+        'Out': 'Out',
+        'Token': 'Token',
+        'SBP Token': 'SBP Token',
+        'SBPТoken': 'SBP Token',
+        'A2C': 'A2C',
+        'СМЭВ': 'SMEV',
+        'P2PCredit': 'P2PCredit',
         'SBPCredit': 'SBPCredit'
     };
+
+    // Русские названия для вывода (всегда отображаем на русском)
+    const russianType = {
+        'SBP_FL': 'СБП',
+        'C2A_FL': 'С2А',
+        'In': 'In',
+        'In_FL': 'In (ФЛ)',
+        'Out': 'Out',
+        'Token': 'Token',
+        'SBP Token': 'SBP Token',
+        'A2C': 'A2C',
+        'SMEV': 'СМЭВ',
+        'P2PCredit': 'P2PCredit',
+        'SBPCredit': 'SBPCredit'
+    };
+
+    // Функция определения типа по разным вариантам написания
+    function detectSectorType(inputText) {
+        // Приводим к нижнему регистру и удаляем лишние пробелы
+        const lowerInput = inputText.toLowerCase().trim();
+        
+        // Проверяем на СБП (разные варианты)
+        if (lowerInput === 'сбп' || lowerInput === 'sbp' || lowerInput === 'fl' || 
+            lowerInput.includes('сбп') || lowerInput.includes('sbp')) {
+            return 'SBP_FL';
+        }
+        
+        // Проверяем на C2A (разные варианты)
+        if (lowerInput === 'с2а' || lowerInput === 'c2a' || 
+            lowerInput.includes('с2а') || lowerInput.includes('c2a')) {
+            return 'C2A_FL';
+        }
+        
+        // Для остальных типов используем стандартное маппирование
+        return null;
+    }
 
     const sectorTypes = {
         'SMEV': { handles: ['IdentificationStatus'], settings: ['sync'] },
@@ -243,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     commissionTypeRadios.forEach(radio => radio.addEventListener('change', updateCommissionFields));
 
-    // Обновление формы (только тест, без прод)
+    // Обновление формы
     function updateModalForm() {
         const type = sectorTypeSelect.value;
         const config = sectorTypes[type];
@@ -290,40 +342,113 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Парсинг
+    // парсинг с поддержкой латиницы, комиссии и различных форматов
     function parseSectorData(input) {
         let cleanInput = input.trim().replace(/\t+/g, ' ');
         const sectorIdPrefix = /^sector\s*id:\s*/i;
         if (sectorIdPrefix.test(cleanInput)) cleanInput = cleanInput.replace(sectorIdPrefix, '');
 
-        const regex = /^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+\(([^)]+)\)(?:\s+\(ФЛ\))?(?:\s*\(\d+\))?$/;
-        const match = cleanInput.match(regex);
-        if (!match) return { error: 'Строка не соответствует формату.' };
-
-        const sectorId = match[1];
-        const jurName = match[2].trim();
-        const site = match[3];
-        let typeRussian = match[4].trim();
-        const hasFL = cleanInput.includes('(ФЛ)');
-
-        let sectorType = typeMapping[typeRussian];
-        if (!sectorType) {
-            const possibleKeys = [typeRussian, typeRussian.replace(/\s+/g, ''), typeRussian.toUpperCase()];
-            for (let key of possibleKeys) if (typeMapping[key]) { sectorType = typeMapping[key]; break; }
+        // Находим первую открывающую скобку
+        const firstParenIndex = cleanInput.indexOf('(');
+        if (firstParenIndex === -1) {
+            return { error: 'Не найдена открывающая скобка' };
         }
-        if (!sectorType) return { error: `Неизвестный тип сектора: "${typeRussian}"` };
 
-        return { sectorId, jurName, site, sectorType, hasCommission: hasFL, error: null };
+        // Часть до первой скобки: ID и название
+        const beforeFirstParen = cleanInput.substring(0, firstParenIndex).trim();
+        const idMatch = beforeFirstParen.match(/^(\d+)/);
+        if (!idMatch) {
+            return { error: 'Не удалось определить ID сектора' };
+        }
+        const sectorId = idMatch[1];
+        let jurName = beforeFirstParen.substring(sectorId.length).trim();
+        if (!jurName) {
+            return { error: 'Не удалось определить название сектора' };
+        }
+
+        // Собираем все скобки
+        const allBrackets = [];
+        let remaining = cleanInput.substring(firstParenIndex);
+        const bracketRegex = /\(([^)]+)\)/g;
+        let match;
+        while ((match = bracketRegex.exec(remaining)) !== null) {
+            allBrackets.push(match[1].trim());
+        }
+
+        if (allBrackets.length < 2) {
+            return { error: 'Недостаточно данных: нужны сайт и тип сектора' };
+        }
+
+        const site = allBrackets[0];
+        const typeRaw = allBrackets[1];
+        let hasFL = false;
+        let commissionPercent = null;
+
+        // Обрабатываем остальные скобки (опции)
+        for (let i = 2; i < allBrackets.length; i++) {
+            const bracket = allBrackets[i];
+            const bracketLower = bracket.toLowerCase();
+            if (bracketLower === 'фл' || bracketLower === 'fl') {
+                hasFL = true;
+            } else if (/^[\d,\.]+$/.test(bracket) && !isNaN(parseFloat(bracket.replace(',', '.')))) {
+                commissionPercent = parseFloat(bracket.replace(',', '.'));
+            }
+        }
+
+        // Определяем тип сектора
+        let sectorType = detectSectorType(typeRaw);
+        if (!sectorType) {
+            sectorType = typeMapping[typeRaw];
+            if (!sectorType) {
+                const possibleKeys = [typeRaw, typeRaw.replace(/\s+/g, ''), typeRaw.toUpperCase(), typeRaw.toLowerCase()];
+                for (let key of possibleKeys) {
+                    if (typeMapping[key]) {
+                        sectorType = typeMapping[key];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!sectorType) {
+            return { error: `Неизвестный тип сектора: "${typeRaw}". Поддерживаемые типы: СБП, SBP, С2А, C2A, In, Out, Token, A2C, СМЭВ, P2PCredit, SBPCredit` };
+        }
+
+        // Если есть комиссия, автоматически включаем ФЛ
+        if (commissionPercent !== null && commissionPercent > 0) {
+            hasFL = true;
+        }
+
+        return {
+            sectorId,
+            jurName,
+            site,
+            sectorType,
+            hasCommission: hasFL,
+            commissionPercent: commissionPercent,
+            error: null
+        };
     }
 
     function fillFormFromParsed(parsed) {
-        if (parsed.error) { modalError.textContent = parsed.error; return; }
-        if (parsed.sectorType) sectorTypeSelect.value = parsed.sectorType;
-        hasCommCheckbox.checked = parsed.hasCommission;
-        updateCommissionFields();
-        updateModalForm();
-        modalError.textContent = '';
+    if (parsed.error) { modalError.textContent = parsed.error; return; }
+    if (parsed.sectorType) sectorTypeSelect.value = parsed.sectorType;
+    hasCommCheckbox.checked = parsed.hasCommission;
+    
+    if (parsed.commissionPercent !== null && parsed.commissionPercent > 0) {
+        commissionPercent.value = parsed.commissionPercent;
+        document.querySelector('input[name="commissionType"][value="fix"]').checked = true;
+        commissionFix.value = 0;
+    } else {
+        commissionPercent.value = '';
+        commissionFix.value = '';
+        commissionMin.value = '';
     }
+    
+    updateCommissionFields();
+    updateModalForm();
+    modalError.textContent = '';
+}
 
     parseBtn.addEventListener('click', () => {
         const raw = sectorDataInput.value.trim();
@@ -352,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeBtn.addEventListener('click', () => modal.style.display = 'none');
     window.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
 
-    // Сохранение сектора (ИСПРАВЛЕНО)
+    // Сохранение сектора
     modalActionBtn.addEventListener('click', () => {
         const raw = sectorDataInput.value.trim();
         if (!raw) { modalError.textContent = 'Введите данные сектора'; return; }
@@ -389,8 +514,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let percentSuffix = '';
         if (hasComm && commissionInfo.percent > 0) percentSuffix = ` (${commissionInfo.percent})`;
 
-        const typeRussianForDisplay = russianType[sectorType] || sectorType;
-        // ИСПРАВЛЕНО: правильное формирование имени без фигурных скобок
+        // Всегда выводим русское название для СБП и С2А
+        let typeRussianForDisplay = russianType[sectorType] || sectorType;
+        
+        // Дополнительная проверка для гарантии правильного отображения
+        if (sectorType === 'SBP_FL') {
+            typeRussianForDisplay = 'СБП';
+        } else if (sectorType === 'C2A_FL') {
+            typeRussianForDisplay = 'С2А';
+        }
+        
         const name = `${jur} (${site}) (${typeRussianForDisplay})${fl}${percentSuffix}`;
 
         const selectedHandles = Array.from(document.querySelectorAll('.handle-checkbox:checked')).map(cb => cb.value);
@@ -471,15 +604,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Редактирование сектора (ИСПРАВЛЕНО)
+    // Редактирование сектора
     window.editSector = (index) => {
         editingIndex = index;
         modalTitle.textContent = 'Редактировать сектор';
         modalActionBtn.textContent = 'Сохранить изменения';
         const sec = sectors[index];
 
-        // ИСПРАВЛЕНО: правильный парсинг имени
-        // Имя имеет формат: "Название (сайт) (тип) (ФЛ) (процент)"
+        // Парсинг имени
         const nameMatch = sec.name.match(/^(.+?)\s+\(([^)]+)\)\s+\(([^)]+)\)(?:\s+\(ФЛ\))?(?:\s+\((\d+)\))?$/);
         
         if (!nameMatch) {
@@ -610,6 +742,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCommissionFields();
     updateModalForm();
 });
-
 // Показываем первую вкладку
 showTab(0);
