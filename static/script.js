@@ -695,13 +695,15 @@ ${sectors}
     updateModalForm();
 
     // ----------------------------------------------------------
-    // СВЯЗЬ ДОНАСТРОЙКИ С ТЕСТИРОВАНИЕМ (новая функциональность)
+    // СВЯЗЬ ДОНАСТРОЙКИ С ТЕСТИРОВАНИЕМ (исправленная версия)
     // ----------------------------------------------------------
     const donaSectorSelect = document.getElementById('donaSectorSelect');
     const handlesForTestDiv = document.getElementById('handlesForTest');
     const testPasswordInput = document.getElementById('testPassword');
+    const testAlgorithmSelect = document.getElementById('testAlgorithm'); // +++ новый элемент +++
     const runSelectedHandlesBtn = document.getElementById('runSelectedHandlesBtn');
     const testProgressDiv = document.getElementById('testProgress');
+    const testerOutput = document.getElementById('tester-output'); // для вывода результатов
 
     function loadSectorsForTest() {
         const sectorsJson = localStorage.getItem('donaSectors');
@@ -758,6 +760,7 @@ ${sectors}
         });
     }
 
+    // +++ ИСПРАВЛЕННАЯ ФУНКЦИЯ runSelectedHandles +++
     async function runSelectedHandles() {
         const selectedSectorId = donaSectorSelect.value;
         if (!selectedSectorId) {
@@ -771,6 +774,8 @@ ${sectors}
             return;
         }
 
+        const algorithm = testAlgorithmSelect.value; // +++ берем выбранный алгоритм
+
         const checkboxes = handlesForTestDiv.querySelectorAll('input[type="checkbox"]:checked');
         if (checkboxes.length === 0) {
             testProgressDiv.innerHTML = '<span class="error-message">❌ Выберите хотя бы одну ручку</span>';
@@ -778,17 +783,25 @@ ${sectors}
         }
 
         const selectedHandles = Array.from(checkboxes).map(cb => cb.value);
-        const scenario = document.getElementById('scenario').value;
-        const algorithm = document.getElementById('algorithm').value;
+        // Список ручек, которые не требуют отдельного теста (они всегда работают)
+        const skipHandles = ['Order', 'Operation', 'GetOperationConfirmation'];
 
         testProgressDiv.innerHTML = '⏳ Начинаем тестирование...<br>';
         let allResults = '';
 
         for (let i = 0; i < selectedHandles.length; i++) {
             const handle = selectedHandles[i];
+            if (skipHandles.includes(handle)) {
+                testProgressDiv.innerHTML += `📌 Ручка ${handle} пропущена (всегда работает)<br>`;
+                allResults += `\n--- ${handle} ---\n[Пропущено: ручка всегда работает]\n`;
+                continue;
+            }
+
             testProgressDiv.innerHTML += `Тестируем ручку ${handle}... `;
-            
+
             try {
+                // Отправляем запрос с указанием ручки (handle)
+                // Бэкенд должен обработать параметр handle и выполнить соответствующий сценарий
                 const response = await fetch('/run_test', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -796,11 +809,10 @@ ${sectors}
                         sector: selectedSectorId,
                         password: password,
                         algorithm: algorithm,
-                        scenario: scenario,
-                        // Если сервер ожидает имя ручки, можно добавить поле handle, но пока не добавляем
+                        handle: handle   // +++ передаем конкретную ручку
                     })
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     testProgressDiv.innerHTML += `✅ Успешно\n`;
@@ -814,10 +826,9 @@ ${sectors}
                 allResults += `\n--- ${handle} ---\n${err.message}\n`;
             }
         }
-        
+
         testProgressDiv.innerHTML += '<hr>Все тесты завершены.<br>';
-        const outputEl = document.getElementById('tester-output');
-        if (outputEl) outputEl.innerHTML = allResults;
+        if (testerOutput) testerOutput.innerHTML = allResults;
     }
 
     if (runSelectedHandlesBtn) {

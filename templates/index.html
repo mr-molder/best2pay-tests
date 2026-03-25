@@ -55,6 +55,15 @@
                     <label>Пароль:</label>
                     <input type="password" id="testPassword" placeholder="Пароль для подписи">
                 </div>
+                <!-- +++ ДОБАВЛЕН ВЫБОР АЛГОРИТМА +++ -->
+                <div style="margin-top: 10px;">
+                    <label>Алгоритм подписи:</label>
+                    <select id="testAlgorithm">
+                        <option value="sha256" selected>SHA256</option>
+                        <option value="md5">MD5</option>
+                    </select>
+                </div>
+                <!-- +++ КОНЕЦ ДОБАВЛЕНИЯ +++ -->
                 <button type="button" id="runSelectedHandlesBtn">Запустить тесты для выбранных ручек</button>
                 <div id="testProgress" style="margin-top: 10px; font-family: monospace;"></div>
             </div>

@@ -45,10 +45,6 @@ SCENARIOS = {
         'name': 'Оплата по SBP-токену',
         'test_path': 'tests/test_sbp_purchase_by_token.py::test_sbp_purchase_by_token'
     },
-    'get_sbp_token': {
-        'name': 'Получение SBP-токена',
-        'test_path': 'tests/test_get_sbp_token.py::test_get_sbp_token'
-    },
     'purchase_with_fee': {
         'name': 'Оплата с комиссией (PURCHASE)',
         'test_path': 'tests/test_purchase_with_fee.py::test_purchase_with_fee'
@@ -63,6 +59,27 @@ SCENARIOS = {
     }
     # Добавьте другие сценарии по мере необходимости
 }
+
+# +++ НОВОЕ: маппинг handle → scenario_key +++
+HANDLE_TO_SCENARIO = {
+    'Purchase': 'purchase_success',
+    'PurchaseSBP': 'sbp_purchase_with_fee',
+    'P2PCredit': 'p2p_credit',
+    'P2PCreditBalance': 'p2p_credit',
+    'SBPCredit': 'sbp_credit_success',
+    'SBPCreditPrecheck': 'sbp_credit_success',
+    'SBPCreditBalance': 'sbp_credit_success',
+    'GetSBPBankList': 'sbp_credit_success',
+    'CardEnroll': 'card_enroll',
+    'GetSBPSubscription': 'sbp_subscription',
+    'PurchaseByToken': 'purchase_by_token',
+    'PurchaseSBPByToken': 'sbp_purchase_by_token',
+    'IdentificationStatus': 'identification_success',
+    'PaymentFee': 'purchase_with_fee',
+}
+
+# Ручки, которые не требуют тестирования (всегда работают)
+ALWAYS_WORKING_HANDLES = {'Order', 'Operation', 'GetOperationConfirmation'}
 
 @app.route('/')
 def index():
@@ -81,14 +98,33 @@ def run_test():
         password = data.get('password')
         scenario_key = data.get('scenario')
         algorithm = data.get('algorithm', 'sha256')
+        handle = data.get('handle')  # +++ новый параметр +++
 
         # Валидация
         if not sector:
             return jsonify({'error': 'Сектор (ID) обязателен'}), 400
         if not password:
             return jsonify({'error': 'Пароль обязателен'}), 400
+
+        # +++ Обработка handle +++
+        if handle:
+            # Если ручка всегда работает, возвращаем успех без запуска теста
+            if handle in ALWAYS_WORKING_HANDLES:
+                return jsonify({
+                    'success': True,
+                    'output': f'Ручка {handle} всегда работает, тест не требуется.'
+                })
+
+            # Ищем сценарий для ручки
+            if handle not in HANDLE_TO_SCENARIO:
+                return jsonify({
+                    'error': f'Для ручки {handle} не настроен тест. Пожалуйста, добавьте сценарий в HANDLE_TO_SCENARIO.'
+                }), 400
+            scenario_key = HANDLE_TO_SCENARIO[handle]
+
+        # Если нет ни handle, ни scenario — ошибка
         if not scenario_key:
-            return jsonify({'error': 'Сценарий не выбран'}), 400
+            return jsonify({'error': 'Не указан сценарий или ручка для тестирования'}), 400
 
         if scenario_key not in SCENARIOS:
             return jsonify({'error': f'Неизвестный сценарий: {scenario_key}'}), 400
@@ -147,5 +183,6 @@ def run_test():
         print("Ошибка в /run_test:", file=sys.stderr)
         traceback.print_exc()
         return jsonify({'error': f'Внутренняя ошибка сервера: {str(e)}'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
