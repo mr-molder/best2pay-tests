@@ -8,8 +8,11 @@ function showTab(tabIndex) {
     });
 }
 
-// ====================== ВКЛАДКА 1: ГЕНЕРАТОР ======================
+// ====================== ВСЕ ОБРАБОТЧИКИ ======================
 document.addEventListener('DOMContentLoaded', () => {
+    // ----------------------------------------------------------
+    // ВКЛАДКА 2 (Шаблон выдачи) - существующий код
+    // ----------------------------------------------------------
     const generateBtn = document.getElementById('generateButton');
     if (generateBtn) {
         generateBtn.addEventListener('click', () => {
@@ -73,54 +76,37 @@ ${sectors}
             setTimeout(() => copyBtn.textContent = original, 2000);
         });
     }
-});
 
-// ====================== ВКЛАДКА 2: ТЕСТИРОВАНИЕ ======================
-async function runTest() {
-    const sector = document.getElementById('sector').value.trim();
-    const password = document.getElementById('password').value.trim();
-    const algorithm = document.getElementById('algorithm').value;
-    const scenario = document.getElementById('scenario').value;
+    // Кнопка загрузки из донастройки (связь с вкладкой 0)
+    const loadFromDonaBtn = document.getElementById('loadFromDonaBtn');
+    if (loadFromDonaBtn) {
+        loadFromDonaBtn.addEventListener('click', () => {
+            const donaLogin = localStorage.getItem('donaLogin');
+            if (donaLogin) {
+                document.getElementById('login').value = donaLogin;
+            } else {
+                alert('Логин не найден. Сначала сохраните данные во вкладке "Донастройка секторов".');
+            }
 
-    if (!sector || !password) {
-        document.getElementById('tester-output').innerHTML = '<span class="error-message">❌ Пожалуйста, заполните все поля</span>';
-        return;
-    }
-
-    const data = { sector, password, algorithm, scenario };
-    const outputEl = document.getElementById('tester-output');
-    outputEl.innerHTML = '⏳ Запуск теста...';
-
-    try {
-        const response = await fetch('/run_test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            const donaSectorsJson = localStorage.getItem('donaSectors');
+            if (donaSectorsJson) {
+                try {
+                    const sectors = JSON.parse(donaSectorsJson);
+                    const sectorLines = sectors.map(sec => `Sector ID: ${sec.id} ${sec.name}`).join('\n');
+                    document.getElementById('sectors').value = sectorLines;
+                } catch (e) {
+                    console.error('Ошибка парсинга секторов', e);
+                    alert('Не удалось загрузить сектора.');
+                }
+            } else {
+                alert('Сектора не найдены. Добавьте сектора во вкладке "Донастройка секторов".');
+            }
         });
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            outputEl.innerHTML = '<span class="failure">❌ Ошибка сервера: получен не JSON</span><br><br>' + text;
-            return;
-        }
-
-        const result = await response.json();
-
-        if (result.error) {
-            outputEl.innerHTML = '<span class="failure">❌ Ошибка:</span><br><br>' + result.error;
-        } else if (result.success) {
-            outputEl.innerHTML = '<span class="success">✅ ТЕСТ ПРОЙДЕН</span><br><br>' + result.output;
-        } else {
-            outputEl.innerHTML = '<span class="failure">❌ ТЕСТ НЕ ПРОЙДЕН</span><br><br>' + result.output;
-        }
-    } catch (error) {
-        outputEl.innerHTML = '<span class="failure">❌ Ошибка соединения:</span><br><br>' + error;
     }
-}
 
-// ====================== ВКЛАДКА 3: ДОНАСТРОЙКА СЕКТОРОВ ======================
-document.addEventListener('DOMContentLoaded', function() {
+    // ----------------------------------------------------------
+    // ВКЛАДКА 0 (Донастройка секторов) - существующий код
+    // ----------------------------------------------------------
     // Данные
     const handlesList = [
         'IdentificationStatus', 'P2PCredit', 'P2PCreditBalance', 'Order', 'Operation', 'GetOperationConfirmation',
@@ -144,22 +130,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Расширенное маппирование для поддержки латиницы и кириллицы
     const typeMapping = {
-        // СБП - поддерживаем оба варианта
         'СБП': 'SBP_FL',
         'СБП (ФЛ)': 'SBP_FL',
         'SBP': 'SBP_FL',
         'SBP_FL': 'SBP_FL',
         'sbp': 'SBP_FL',
         'FL': 'SBP_FL',
-        
-        // C2A - поддерживаем оба варианта
         'С2А': 'C2A_FL',
         'С2А (ФЛ)': 'C2A_FL',
         'C2A': 'C2A_FL',
         'C2A_FL': 'C2A_FL',
         'c2a': 'C2A_FL',
-        
-        // Другие типы
         'In': 'In',
         'In (ФЛ)': 'In_FL',
         'In(ФЛ)': 'In_FL',
@@ -173,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'SBPCredit': 'SBPCredit'
     };
 
-    // Русские названия для вывода (всегда отображаем на русском)
+    // Русские названия для вывода
     const russianType = {
         'SBP_FL': 'СБП',
         'C2A_FL': 'С2А',
@@ -188,24 +169,16 @@ document.addEventListener('DOMContentLoaded', function() {
         'SBPCredit': 'SBPCredit'
     };
 
-    // Функция определения типа по разным вариантам написания
     function detectSectorType(inputText) {
-        // Приводим к нижнему регистру и удаляем лишние пробелы
         const lowerInput = inputText.toLowerCase().trim();
-        
-        // Проверяем на СБП (разные варианты)
         if (lowerInput === 'сбп' || lowerInput === 'sbp' || lowerInput === 'fl' || 
             lowerInput.includes('сбп') || lowerInput.includes('sbp')) {
             return 'SBP_FL';
         }
-        
-        // Проверяем на C2A (разные варианты)
         if (lowerInput === 'с2а' || lowerInput === 'c2a' || 
             lowerInput.includes('с2а') || lowerInput.includes('c2a')) {
             return 'C2A_FL';
         }
-        
-        // Для остальных типов используем стандартное маппирование
         return null;
     }
 
@@ -237,8 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const handlesDiv = document.getElementById('handles');
     const settingsDiv = document.getElementById('settings');
     const modalActionBtn = document.getElementById('modalActionBtn');
-    const generateBtn = document.getElementById('dona-generateButton');
-    const copyBtn = document.getElementById('dona-copyButton');
+    const generateBtnDona = document.getElementById('dona-generateButton');
+    const copyBtnDona = document.getElementById('dona-copyButton');
     const outputDiv = document.getElementById('dona-output');
     const sectorsListDiv = document.getElementById('dona-sectorsList');
     const requestTitleInput = document.getElementById('dona-requestTitle');
@@ -280,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
         settingsDiv.appendChild(label);
     });
 
-    // Переключение комиссии
     function updateCommissionFields() {
         const selectedType = document.querySelector('input[name="commissionType"]:checked')?.value;
         if (selectedType === 'fix') {
@@ -295,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     commissionTypeRadios.forEach(radio => radio.addEventListener('change', updateCommissionFields));
 
-    // Обновление формы
     function updateModalForm() {
         const type = sectorTypeSelect.value;
         const config = sectorTypes[type];
@@ -342,19 +313,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // парсинг с поддержкой латиницы, комиссии и различных форматов
     function parseSectorData(input) {
         let cleanInput = input.trim().replace(/\t+/g, ' ');
         const sectorIdPrefix = /^sector\s*id:\s*/i;
         if (sectorIdPrefix.test(cleanInput)) cleanInput = cleanInput.replace(sectorIdPrefix, '');
 
-        // Находим первую открывающую скобку
         const firstParenIndex = cleanInput.indexOf('(');
         if (firstParenIndex === -1) {
             return { error: 'Не найдена открывающая скобка' };
         }
 
-        // Часть до первой скобки: ID и название
         const beforeFirstParen = cleanInput.substring(0, firstParenIndex).trim();
         const idMatch = beforeFirstParen.match(/^(\d+)/);
         if (!idMatch) {
@@ -366,7 +334,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return { error: 'Не удалось определить название сектора' };
         }
 
-        // Собираем все скобки
         const allBrackets = [];
         let remaining = cleanInput.substring(firstParenIndex);
         const bracketRegex = /\(([^)]+)\)/g;
@@ -384,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let hasFL = false;
         let commissionPercent = null;
 
-        // Обрабатываем остальные скобки (опции)
         for (let i = 2; i < allBrackets.length; i++) {
             const bracket = allBrackets[i];
             const bracketLower = bracket.toLowerCase();
@@ -395,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Определяем тип сектора
         let sectorType = detectSectorType(typeRaw);
         if (!sectorType) {
             sectorType = typeMapping[typeRaw];
@@ -414,7 +379,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return { error: `Неизвестный тип сектора: "${typeRaw}". Поддерживаемые типы: СБП, SBP, С2А, C2A, In, Out, Token, A2C, СМЭВ, P2PCredit, SBPCredit` };
         }
 
-        // Если есть комиссия, автоматически включаем ФЛ
         if (commissionPercent !== null && commissionPercent > 0) {
             hasFL = true;
         }
@@ -431,24 +395,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fillFormFromParsed(parsed) {
-    if (parsed.error) { modalError.textContent = parsed.error; return; }
-    if (parsed.sectorType) sectorTypeSelect.value = parsed.sectorType;
-    hasCommCheckbox.checked = parsed.hasCommission;
-    
-    if (parsed.commissionPercent !== null && parsed.commissionPercent > 0) {
-        commissionPercent.value = parsed.commissionPercent;
-        document.querySelector('input[name="commissionType"][value="fix"]').checked = true;
-        commissionFix.value = 0;
-    } else {
-        commissionPercent.value = '';
-        commissionFix.value = '';
-        commissionMin.value = '';
+        if (parsed.error) { modalError.textContent = parsed.error; return; }
+        if (parsed.sectorType) sectorTypeSelect.value = parsed.sectorType;
+        hasCommCheckbox.checked = parsed.hasCommission;
+        
+        if (parsed.commissionPercent !== null && parsed.commissionPercent > 0) {
+            commissionPercent.value = parsed.commissionPercent;
+            document.querySelector('input[name="commissionType"][value="fix"]').checked = true;
+            commissionFix.value = 0;
+        } else {
+            commissionPercent.value = '';
+            commissionFix.value = '';
+            commissionMin.value = '';
+        }
+        
+        updateCommissionFields();
+        updateModalForm();
+        modalError.textContent = '';
     }
-    
-    updateCommissionFields();
-    updateModalForm();
-    modalError.textContent = '';
-}
 
     parseBtn.addEventListener('click', () => {
         const raw = sectorDataInput.value.trim();
@@ -460,7 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
     sectorTypeSelect.addEventListener('change', updateModalForm);
     hasCommCheckbox.addEventListener('change', updateModalForm);
 
-    // Открытие модалки
     addSectorBtn.addEventListener('click', () => {
         editingIndex = -1;
         modalTitle.textContent = 'Добавить сектор';
@@ -477,7 +440,6 @@ document.addEventListener('DOMContentLoaded', function() {
     closeBtn.addEventListener('click', () => modal.style.display = 'none');
     window.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
 
-    // Сохранение сектора
     modalActionBtn.addEventListener('click', () => {
         const raw = sectorDataInput.value.trim();
         if (!raw) { modalError.textContent = 'Введите данные сектора'; return; }
@@ -514,10 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let percentSuffix = '';
         if (hasComm && commissionInfo.percent > 0) percentSuffix = ` (${commissionInfo.percent})`;
 
-        // Всегда выводим русское название для СБП и С2А
         let typeRussianForDisplay = russianType[sectorType] || sectorType;
-        
-        // Дополнительная проверка для гарантии правильного отображения
         if (sectorType === 'SBP_FL') {
             typeRussianForDisplay = 'СБП';
         } else if (sectorType === 'C2A_FL') {
@@ -604,14 +563,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Редактирование сектора
     window.editSector = (index) => {
         editingIndex = index;
         modalTitle.textContent = 'Редактировать сектор';
         modalActionBtn.textContent = 'Сохранить изменения';
         const sec = sectors[index];
 
-        // Парсинг имени
         const nameMatch = sec.name.match(/^(.+?)\s+\(([^)]+)\)\s+\(([^)]+)\)(?:\s+\(ФЛ\))?(?:\s+\((\d+)\))?$/);
         
         if (!nameMatch) {
@@ -626,10 +583,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const percent = nameMatch[4] ? parseInt(nameMatch[4]) : 0;
         const hasFL = sec.name.includes('(ФЛ)');
 
-        // Восстанавливаем строку для поля ввода
         sectorDataInput.value = `${sec.id} ${jur} (${site}) (${typeRussian})${hasFL ? ' (ФЛ)' : ''}`;
 
-        // Находим тип сектора
         sectorTypeSelect.value = sec.sectorType || 'In';
 
         hasCommCheckbox.checked = sec.commission.type !== 'none';
@@ -660,8 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modalError.textContent = '';
     };
 
-    // Генерация
-    generateBtn.addEventListener('click', () => {
+    generateBtnDona.addEventListener('click', () => {
         const login = loginInput.value.trim();
         if (!login) { alert('Пожалуйста, заполните поле "Логин"'); return; }
         const title = requestTitleInput.value;
@@ -681,11 +635,10 @@ document.addEventListener('DOMContentLoaded', function() {
         html += 'Настроить для секторов выше с правами full office (lk personal-area)';
 
         outputDiv.innerHTML = html;
-        copyBtn.style.display = 'inline-block';
+        copyBtnDona.style.display = 'inline-block';
     });
 
-    // Копирование
-    copyBtn.addEventListener('click', () => {
+    copyBtnDona.addEventListener('click', () => {
         const login = loginInput.value.trim();
         if (!login) { alert('Пожалуйста, заполните поле "Логин"'); return; }
         const title = requestTitleInput.value;
@@ -716,7 +669,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // LocalStorage
     function saveToLocalStorage() {
         localStorage.setItem('donaSectors', JSON.stringify(sectors));
         localStorage.setItem('donaRequestTitle', requestTitleInput.value);
@@ -741,6 +693,183 @@ document.addEventListener('DOMContentLoaded', function() {
     loadFromLocalStorage();
     updateCommissionFields();
     updateModalForm();
+
+    // ----------------------------------------------------------
+    // СВЯЗЬ ДОНАСТРОЙКИ С ТЕСТИРОВАНИЕМ (новая функциональность)
+    // ----------------------------------------------------------
+    const donaSectorSelect = document.getElementById('donaSectorSelect');
+    const handlesForTestDiv = document.getElementById('handlesForTest');
+    const testPasswordInput = document.getElementById('testPassword');
+    const runSelectedHandlesBtn = document.getElementById('runSelectedHandlesBtn');
+    const testProgressDiv = document.getElementById('testProgress');
+
+    function loadSectorsForTest() {
+        const sectorsJson = localStorage.getItem('donaSectors');
+        if (!sectorsJson) return [];
+        try {
+            return JSON.parse(sectorsJson);
+        } catch(e) {
+            console.error('Ошибка парсинга секторов', e);
+            return [];
+        }
+    }
+
+    function populateSectorSelect() {
+        const sectors = loadSectorsForTest();
+        donaSectorSelect.innerHTML = '<option value="">-- выберите сектор --</option>';
+        sectors.forEach(sec => {
+            const option = document.createElement('option');
+            option.value = sec.id;
+            option.textContent = `Sector ID: ${sec.id} ${sec.name}`;
+            donaSectorSelect.appendChild(option);
+        });
+    }
+
+    function showHandlesForSector(sectorId) {
+        handlesForTestDiv.innerHTML = '';
+        const sectors = loadSectorsForTest();
+        const sector = sectors.find(sec => sec.id == sectorId);
+        if (!sector || !sector.handles || sector.handles.length === 0) {
+            handlesForTestDiv.innerHTML = '<em>Нет ручек для тестирования</em>';
+            return;
+        }
+
+        sector.handles.forEach(handle => {
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = handle;
+            checkbox.checked = true;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' ' + handle));
+            handlesForTestDiv.appendChild(label);
+            handlesForTestDiv.appendChild(document.createElement('br'));
+        });
+    }
+
+    if (donaSectorSelect) {
+        donaSectorSelect.addEventListener('change', function() {
+            const selectedId = this.value;
+            if (selectedId) {
+                showHandlesForSector(selectedId);
+            } else {
+                handlesForTestDiv.innerHTML = '';
+            }
+        });
+    }
+
+    async function runSelectedHandles() {
+        const selectedSectorId = donaSectorSelect.value;
+        if (!selectedSectorId) {
+            testProgressDiv.innerHTML = '<span class="error-message">❌ Выберите сектор</span>';
+            return;
+        }
+
+        const password = testPasswordInput.value.trim();
+        if (!password) {
+            testProgressDiv.innerHTML = '<span class="error-message">❌ Введите пароль</span>';
+            return;
+        }
+
+        const checkboxes = handlesForTestDiv.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) {
+            testProgressDiv.innerHTML = '<span class="error-message">❌ Выберите хотя бы одну ручку</span>';
+            return;
+        }
+
+        const selectedHandles = Array.from(checkboxes).map(cb => cb.value);
+        const scenario = document.getElementById('scenario').value;
+        const algorithm = document.getElementById('algorithm').value;
+
+        testProgressDiv.innerHTML = '⏳ Начинаем тестирование...<br>';
+        let allResults = '';
+
+        for (let i = 0; i < selectedHandles.length; i++) {
+            const handle = selectedHandles[i];
+            testProgressDiv.innerHTML += `Тестируем ручку ${handle}... `;
+            
+            try {
+                const response = await fetch('/run_test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sector: selectedSectorId,
+                        password: password,
+                        algorithm: algorithm,
+                        scenario: scenario,
+                        // Если сервер ожидает имя ручки, можно добавить поле handle, но пока не добавляем
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    testProgressDiv.innerHTML += `✅ Успешно\n`;
+                    allResults += `\n--- ${handle} ---\n${result.output}\n`;
+                } else {
+                    testProgressDiv.innerHTML += `❌ Ошибка\n`;
+                    allResults += `\n--- ${handle} ---\n${result.output || result.error}\n`;
+                }
+            } catch (err) {
+                testProgressDiv.innerHTML += `❌ Ошибка запроса\n`;
+                allResults += `\n--- ${handle} ---\n${err.message}\n`;
+            }
+        }
+        
+        testProgressDiv.innerHTML += '<hr>Все тесты завершены.<br>';
+        const outputEl = document.getElementById('tester-output');
+        if (outputEl) outputEl.innerHTML = allResults;
+    }
+
+    if (runSelectedHandlesBtn) {
+        runSelectedHandlesBtn.addEventListener('click', runSelectedHandles);
+    }
+
+    populateSectorSelect();
 });
-// Показываем первую вкладку
+
+// ====================== ВКЛАДКА 1: ТЕСТИРОВАНИЕ (ручной режим) ======================
+async function runTest() {
+    const sector = document.getElementById('sector').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const algorithm = document.getElementById('algorithm').value;
+    const scenario = document.getElementById('scenario').value;
+
+    if (!sector || !password) {
+        document.getElementById('tester-output').innerHTML = '<span class="error-message">❌ Пожалуйста, заполните все поля</span>';
+        return;
+    }
+
+    const data = { sector, password, algorithm, scenario };
+    const outputEl = document.getElementById('tester-output');
+    outputEl.innerHTML = '⏳ Запуск теста...';
+
+    try {
+        const response = await fetch('/run_test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            outputEl.innerHTML = '<span class="failure">❌ Ошибка сервера: получен не JSON</span><br><br>' + text;
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.error) {
+            outputEl.innerHTML = '<span class="failure">❌ Ошибка:</span><br><br>' + result.error;
+        } else if (result.success) {
+            outputEl.innerHTML = '<span class="success">✅ ТЕСТ ПРОЙДЕН</span><br><br>' + result.output;
+        } else {
+            outputEl.innerHTML = '<span class="failure">❌ ТЕСТ НЕ ПРОЙДЕН</span><br><br>' + result.output;
+        }
+    } catch (error) {
+        outputEl.innerHTML = '<span class="failure">❌ Ошибка соединения:</span><br><br>' + error;
+    }
+}
+
+// Показываем первую вкладку (Донастройка секторов)
 showTab(0);

@@ -11,42 +11,58 @@
         <h1>Best2Pay Инструменты</h1>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab(0)">Шаблон выдачи</button>
+            <button class="tab-button active" onclick="showTab(0)">Донастройка секторов</button>
             <button class="tab-button" onclick="showTab(1)">Тестирование</button>
-            <button class="tab-button" onclick="showTab(2)">Донастройка секторов</button>
+            <button class="tab-button" onclick="showTab(2)">Шаблон выдачи</button>
         </div>
 
-        <!-- ВКЛАДКА 1: ШАБЛОН ВЫДАЧИ -->
+        <!-- ВКЛАДКА 0: ДОНАСТРОЙКА СЕКТОРОВ -->
         <div id="tab-0" class="tab-content active">
-            <h2>Шаблон выдачи</h2>
-            <form id="generatorForm">
-                <label for="accessType">Тип доступа:</label>
-                <select id="accessType" required>
-                    <option value="combat">Боевой</option>
-                    <option value="test">Тестовый</option>
-                </select>
+            <h2>Генератор запроса на донастройку секторов</h2>
+            <form id="dona-mainForm">
+                <label for="dona-requestTitle">Заголовок запроса:</label>
+                <input type="text" id="dona-requestTitle" value="Просьба донастроить сектора" required>
 
-                <label for="login">Login:</label>
-                <input type="text" id="login" placeholder="Например: finmi.ru или plata" required>
+                <label for="dona-login">Логин:</label>
+                <input type="text" id="dona-login" placeholder="Например: miamoney.ru" required>
 
-                <label for="hashType">Тип хэша:</label>
-                <select id="hashType" required>
-                    <option value="sha256">sha256</option>
-                    <option value="md5">md5</option>
-                </select>
-
-                <label for="sectors">Список секторов (каждый с новой строки):</label>
-                <textarea id="sectors" rows="10" placeholder="Sector ID: 24094 ООО МКК &quot;Финкомпас&quot; (finmi.ru) (СМЭВ) (БП)..." required></textarea>
-
-                <button type="button" id="generateButton">Сгенерировать текст</button>
-                <button type="button" id="copyButton">Копировать текст</button>
+                <button type="button" id="dona-addSectorButton">Добавить сектор</button>
             </form>
-            <textarea id="generator-output" class="output" readonly></textarea>
+
+            <div id="dona-sectorsList"></div>
+
+            <button type="button" id="dona-generateButton">Сгенерировать текст</button>
+            <button type="button" id="dona-copyButton" style="display: none;">Копировать текст</button>
+
+            <div id="dona-output"></div>
         </div>
 
-        <!-- ВКЛАДКА 2: ТЕСТИРОВАНИЕ -->
+        <!-- ВКЛАДКА 1: ТЕСТИРОВАНИЕ -->
         <div id="tab-1" class="tab-content">
             <h2>Тестирование Best2Pay</h2>
+            
+            <!-- Новая секция: выбор сектора из донастройки -->
+            <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+                <h3>Тестирование секторов из донастройки</h3>
+                <div>
+                    <label>Выберите сектор:</label>
+                    <select id="donaSectorSelect">
+                        <option value="">-- выберите сектор --</option>
+                    </select>
+                </div>
+                <div id="handlesForTest" style="margin-top: 10px;"></div>
+                <div style="margin-top: 10px;">
+                    <label>Пароль (для всех ручек):</label>
+                    <input type="password" id="testPassword" placeholder="Пароль для подписи">
+                </div>
+                <button type="button" id="runSelectedHandlesBtn">Запустить тесты для выбранных ручек</button>
+                <div id="testProgress" style="margin-top: 10px; font-family: monospace;"></div>
+            </div>
+
+            <hr>
+
+            <!-- Существующая форма ручного тестирования -->
+            <h3>Ручное тестирование</h3>
             <form id="testForm">
                 <div><label>Сектор (ID):</label><input type="text" id="sector" required placeholder="Например: 1"></div>
                 <div><label>Пароль:</label><input type="password" id="password" required placeholder="Пароль для подписи"></div>
@@ -69,29 +85,37 @@
             <pre id="tester-output" class="output">(ожидание запуска...)</pre>
         </div>
 
-        <!-- ВКЛАДКА 3: ДОНАСТРОЙКА СЕКТОРОВ -->
+        <!-- ВКЛАДКА 2: ШАБЛОН ВЫДАЧИ -->
         <div id="tab-2" class="tab-content">
-            <h2>Генератор запроса на донастройку секторов</h2>
-            <form id="dona-mainForm">
-                <label for="dona-requestTitle">Заголовок запроса:</label>
-                <input type="text" id="dona-requestTitle" value="Просьба донастроить сектора" required>
+            <h2>Шаблон выдачи</h2>
+            <form id="generatorForm">
+                <label for="accessType">Тип доступа:</label>
+                <select id="accessType" required>
+                    <option value="combat">Боевой</option>
+                    <option value="test">Тестовый</option>
+                </select>
 
-                <label for="dona-login">Логин:</label>
-                <input type="text" id="dona-login" placeholder="Например: miamoney.ru" required>
+                <label for="login">Login:</label>
+                <input type="text" id="login" placeholder="Например: finmi.ru или plata" required>
 
-                <button type="button" id="dona-addSectorButton">Добавить сектор</button>
+                <label for="hashType">Тип хэша:</label>
+                <select id="hashType" required>
+                    <option value="sha256">sha256</option>
+                    <option value="md5">md5</option>
+                </select>
+
+                <label for="sectors">Список секторов (каждый с новой строки):</label>
+                <textarea id="sectors" rows="10" placeholder="Sector ID: 24094 ООО МКК &quot;Финкомпас&quot; (finmi.ru) (СМЭВ) (БП)..." required></textarea>
+
+                <button type="button" id="generateButton">Сгенерировать текст</button>
+                <button type="button" id="copyButton">Копировать текст</button>
+                <button type="button" id="loadFromDonaBtn" style="margin-left: 10px;">Загрузить из донастройки</button>
             </form>
-
-            <div id="dona-sectorsList"></div>
-
-            <button type="button" id="dona-generateButton">Сгенерировать текст</button>
-            <button type="button" id="dona-copyButton" style="display: none;">Копировать текст</button>
-
-            <div id="dona-output"></div>
+            <textarea id="generator-output" class="output" readonly></textarea>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО (общее для вкладки 3) -->
+    <!-- МОДАЛЬНОЕ ОКНО (общее для вкладки 0) -->
     <div id="modal">
         <div id="modal-content">
             <span class="close">&times;</span>
