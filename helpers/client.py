@@ -352,7 +352,7 @@ class Best2PayClient:
         :param order_id: ID заказа (необязательно, если указан qrc_id)
         :param qrc_id: идентификатор функциональной ссылки (необязательно, если указан order_id)
         """
-        params = {'case_id': case_id}
+        params = {'case_id': case_id, 'mode': 1}
         if order_id:
             params['order_id'] = order_id
         if qrc_id:
